@@ -1,41 +1,35 @@
 {
   "name": "@mhbdev/bdk",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Type-safe billing and subscription management SDK with abstractions for payment providers, billing strategies, and event hooks",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "private": "false",
+  "private": false,
   "exports": {
     ".": {
       "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs"
     },
     "./core": {
       "require": "./dist/core.js",
-      "import": "./dist/core.mjs",
-      "types": "./dist/core.d.ts"
+      "import": "./dist/core.mjs"
     },
     "./services": {
       "require": "./dist/services.js",
-      "import": "./dist/services.mjs",
-      "types": "./dist/services.d.ts"
+      "import": "./dist/services.mjs"
     },
     "./providers": {
       "require": "./dist/providers.js",
-      "import": "./dist/providers.mjs",
-      "types": "./dist/providers.d.ts"
+      "import": "./dist/providers.mjs"
     },
     "./hooks": {
       "require": "./dist/hooks.js",
-      "import": "./dist/hooks.mjs",
-      "types": "./dist/hooks.d.ts"
+      "import": "./dist/hooks.mjs"
     },
     "./adapters": {
       "require": "./dist/adapters.js",
-      "import": "./dist/adapters.mjs",
-      "types": "./dist/adapters.d.ts"
+      "import": "./dist/adapters.mjs"
     }
   },
   "files": [
@@ -59,7 +53,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "clean": "rm -rf dist",
+    "clean": "if exist dist rmdir /s /q dist",
     "prebuild": "npm run clean && npm run type-check",
     "prepublishOnly": "npm run build"
   },
