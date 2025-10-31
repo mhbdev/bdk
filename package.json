@@ -1,10 +1,11 @@
 {
-  "name": "bdk",
+  "name": "@mhbdev/bdk",
   "version": "1.0.0",
   "description": "Type-safe billing and subscription management SDK with abstractions for payment providers, billing strategies, and event hooks",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "private": "false",
   "exports": {
     ".": {
       "require": "./dist/index.js",
@@ -42,6 +43,11 @@
     "README.md",
     "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mhbdev/bdk.git"
+  },
+  "homepage": "https://github.com/mhbdev/bdk#readme",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsup",

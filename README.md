@@ -1,3 +1,41 @@
+# @mhbdev/bdk Billing Development Kit
+
+Type-safe billing and subscription management SDK.
+
+## Installation
+
+\`\`\`bash
+npm install @mhbdev/bdk
+\`\`\`
+
+## Quick Start
+
+\`\`\`typescript
+import { createNextJsAppRouterHandlers } from '@mhbdev/bdk/adapters';
+
+const handlers = createNextJsAppRouterHandlers({
+  webhookService: myWebhookService,
+  providerId: 'stripe',
+});
+
+export const POST = handlers.POST;
+\`\`\`
+
+## Features
+
+- 🎯 Fully Abstract - Pure interfaces and abstract classes
+- 🔒 Type-Safe - Complete TypeScript coverage
+- 🔌 Extensible - Clear extension points
+- 📡 Event-Driven - Comprehensive hook system
+
+## Documentation
+
+See [full documentation](https://github.com/mhbdev/bdk#readme).
+
+## License
+
+MIT
+
 ```typescript
  class ProrationBillingStrategy extends BillingStrategy {
    async calculateAmount(
