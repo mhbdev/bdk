@@ -1,14 +1,75 @@
 {
   "name": "bdk",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "Type-safe billing and subscription management SDK with abstractions for payment providers, billing strategies, and event hooks",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "require": "./dist/core.js",
+      "import": "./dist/core.mjs",
+      "types": "./dist/core.d.ts"
+    },
+    "./services": {
+      "require": "./dist/services.js",
+      "import": "./dist/services.mjs",
+      "types": "./dist/services.d.ts"
+    },
+    "./providers": {
+      "require": "./dist/providers.js",
+      "import": "./dist/providers.mjs",
+      "types": "./dist/providers.d.ts"
+    },
+    "./hooks": {
+      "require": "./dist/hooks.js",
+      "import": "./dist/hooks.mjs",
+      "types": "./dist/hooks.d.ts"
+    },
+    "./adapters": {
+      "require": "./dist/adapters.js",
+      "import": "./dist/adapters.mjs",
+      "types": "./dist/adapters.d.ts"
+    }
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean && npm run type-check",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "billing",
+    "subscription",
+    "payment",
+    "stripe",
+    "typescript",
+    "sdk",
+    "saas",
+    "recurring-billing",
+    "payment-gateway"
+  ],
+  "author": "MonoBit",
+  "license": "MIT",
   "packageManager": "pnpm@10.14.0",
   "devDependencies": {
     "@types/node": "^24.9.2",
@@ -17,11 +78,15 @@
     "@vitest/ui": "^4.0.5",
     "drizzle-kit": "^0.31.6",
     "eslint": "^9.38.0",
+    "tsup": "^8.5.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.5"
   },
   "dependencies": {
+    "drizzle-orm": "^0.44.7"
+  },
+  "peerDependencies": {
     "drizzle-orm": "^0.44.7"
   }
 }
