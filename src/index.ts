@@ -21,6 +21,3 @@ export * from './adapters';
 
 // Re-export schemas
 export * from './schemas';
-
-// Package metadata
-export const VERSION = '0.1.1';
