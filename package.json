@@ -1,6 +1,6 @@
 {
   "name": "@mhbdev/bdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type-safe billing and subscription management SDK with abstractions for payment providers, billing strategies, and event hooks",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
