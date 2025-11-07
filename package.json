@@ -1,92 +1,39 @@
 {
   "name": "@mhbdev/bdk",
   "version": "0.1.1",
-  "description": "Type-safe billing and subscription management SDK with abstractions for payment providers, billing strategies, and event hooks",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "private": false,
-  "exports": {
-    ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs"
-    },
-    "./core": {
-      "require": "./dist/core.js",
-      "import": "./dist/core.mjs"
-    },
-    "./services": {
-      "require": "./dist/services.js",
-      "import": "./dist/services.mjs"
-    },
-    "./providers": {
-      "require": "./dist/providers.js",
-      "import": "./dist/providers.mjs"
-    },
-    "./hooks": {
-      "require": "./dist/hooks.js",
-      "import": "./dist/hooks.mjs"
-    },
-    "./adapters": {
-      "require": "./dist/adapters.js",
-      "import": "./dist/adapters.mjs"
-    }
-  },
+  "description": "Universal billing and payment abstraction framework for Node.js/TypeScript",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "README.md",
-    "LICENSE"
+    "README.md"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mhbdev/bdk.git"
-  },
-  "homepage": "https://github.com/mhbdev/bdk#readme",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsup",
-    "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
-    "clean": "if exist dist rmdir /s /q dist",
-    "prebuild": "npm run clean && npm run type-check",
-    "prepublishOnly": "npm run build"
+    "build": "tsup src/index.ts --dts --format cjs,esm --sourcemap",
+    "dev": "tsup src/index.ts --watch --dts --format cjs,esm --sourcemap",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write .",
+    "test": "vitest run --coverage"
   },
-  "keywords": [
-    "billing",
-    "subscription",
-    "payment",
-    "stripe",
-    "typescript",
-    "sdk",
-    "saas",
-    "recurring-billing",
-    "payment-gateway"
-  ],
-  "author": "MonoBit",
-  "license": "MIT",
-  "packageManager": "pnpm@10.14.0",
   "devDependencies": {
-    "@types/node": "^24.9.2",
-    "@typescript-eslint/eslint-plugin": "^8.41.0",
-    "@typescript-eslint/parser": "^8.41.0",
-    "@vitest/ui": "^4.0.5",
-    "drizzle-kit": "^0.31.6",
-    "eslint": "^9.38.0",
-    "tsup": "^8.5.0",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.5"
+    "@types/node": "^20.11.30",
+    "@vitest/coverage-v8": "^1.6.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.0.1",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
-    "drizzle-orm": "^0.44.7"
-  },
-  "peerDependencies": {
-    "drizzle-orm": "^0.44.7"
+    "drizzle-orm": "^0.44.7",
+    "eventemitter3": "^5.0.1",
+    "pdfkit": "^0.13.0",
+    "stripe": "^19.3.0",
+    "zod": "^3.23.8"
   }
 }
