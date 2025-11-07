@@ -1,6 +1,6 @@
 {
   "name": "@mhbdev/bdk",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Universal billing and payment abstraction framework for Node.js/TypeScript",
   "type": "module",
   "main": "dist/index.cjs",
