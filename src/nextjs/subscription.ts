@@ -12,7 +12,11 @@ export function pagesRouterStartSubscription(core: BillingCore) {
     }
 
     const body = req.body ?? {};
-    const plan: Plan = body.plan;
+    const plan: Plan | null = body.plan ?? (body.planId ? await core.getPlanById(body.planId) : null);
+    if (!plan) {
+      res.status(404).json({ error: 'Plan not found' });
+      return;
+    }
     const periodStart = new Date(body.periodStart ?? new Date());
     const periodEnd = new Date(body.periodEnd ?? new Date());
 
@@ -41,7 +45,13 @@ export function appRouterStartSubscription(core: BillingCore) {
     }
 
     const body = await req.json();
-    const plan: Plan = body.plan;
+    const plan: Plan | null = body.plan ?? (body.planId ? await core.getPlanById(body.planId) : null);
+    if (!plan) {
+      return new Response(JSON.stringify({ error: 'Plan not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     const periodStart = new Date(body.periodStart ?? new Date());
     const periodEnd = new Date(body.periodEnd ?? new Date());
 

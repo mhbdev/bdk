@@ -25,64 +25,88 @@ npm install ioredis
 ```
 
 ## Define Plans
-Use plan helpers to declaratively model pricing and attach quotas in metadata.
+Use plan helpers to declaratively model pricing and attach quotas in metadata. Persist plans to storage and reference them by `planId`.
 
 ```ts
 // lib/plans.ts
 import { plans } from '@mhbdev/bdk'
 
+// Create base plans with helpers, then attach metadata
+const FreeBase = plans.usagePlan({
+  id: 'free',
+  productId: 'prod_free',
+  name: 'Free',
+  currency: 'USD',
+  unitAmount: 0, // free usage, enforced by quota
+  metric: 'ai_tokens',
+  billingInterval: 'month',
+})
+
+const ProBase = plans.hybridPlan({
+  id: 'pro',
+  productId: 'prod_pro',
+  name: 'Pro',
+  currency: 'USD',
+  baseUnitAmount: 2_000, // $20
+  usageUnitAmount: 1,    // $0.01 per 1k tokens (example minor units)
+  metric: 'ai_tokens',
+  billingInterval: 'month',
+})
+
+const TeamBase = plans.seatPlan({
+  id: 'team',
+  productId: 'prod_team',
+  name: 'Team',
+  currency: 'USD',
+  seatUnitAmount: 1_200, // $12/seat
+  billingInterval: 'month',
+})
+
+const EnterpriseBase = plans.hybridPlan({
+  id: 'enterprise',
+  productId: 'prod_enterprise',
+  name: 'Enterprise',
+  currency: 'USD',
+  baseUnitAmount: 10_000, // $100
+  usageUnitAmount: 0.8,   // $0.008 per unit
+  metric: 'ai_tokens',
+  billingInterval: 'month',
+})
+
 export const Plans = {
-  Free: plans.usagePlan({
-    id: 'free',
-    productId: 'prod_free',
-    name: 'Free',
-    currency: 'USD',
-    unitAmount: 0, // free usage, enforced by quota
-    metric: 'ai_tokens',
-    billingInterval: 'month',
+  Free: {
+    ...FreeBase,
     metadata: {
       quotaMonthlyTokens: 100_000,
       rateLimitRPM: 60,
       limits: { agents: 1, kbSizeMB: 200 },
       overage: { mode: 'block' },
     },
-  }),
-  Pro: plans.hybridPlan({
-    id: 'pro',
-    productId: 'prod_pro',
-    name: 'Pro',
-    currency: 'USD',
-    baseUnitAmount: 2_000, // $20
-    usageUnitAmount: 1,    // $0.01 per 1k tokens (example minor units)
-    metric: 'ai_tokens',
-    billingInterval: 'month',
+  },
+  Pro: {
+    ...ProBase,
     metadata: {
       quotaMonthlyTokens: 2_000_000,
       rateLimitRPM: 300,
       overage: { mode: 'metered', pricePerTokenMinor: 1 },
     },
-  }),
-  Team: plans.seatPlan({
-    id: 'team',
-    productId: 'prod_team',
-    name: 'Team',
-    currency: 'USD',
-    seatUnitAmount: 1_200, // $12/seat
-    billingInterval: 'month',
+  },
+  Team: {
+    ...TeamBase,
     metadata: { quotaMonthlyTokens: 5_000_000, rateLimitRPM: 600 },
-  }),
-  Enterprise: plans.hybridPlan({
-    id: 'enterprise',
-    productId: 'prod_enterprise',
-    name: 'Enterprise',
-    currency: 'USD',
-    baseUnitAmount: 10_000, // $100
-    usageUnitAmount: 0.8,   // $0.008 per unit
-    metric: 'ai_tokens',
-    billingInterval: 'month',
+  },
+  Enterprise: {
+    ...EnterpriseBase,
     metadata: { custom: true },
-  }),
+  },
 }
+
+// Persist plans so APIs can resolve by planId (once at startup)
+// import { billing } from './billing'
+// await billing.savePlan(Plans.Free)
+// await billing.savePlan(Plans.Pro)
+// await billing.savePlan(Plans.Team)
+// await billing.savePlan(Plans.Enterprise)
 ```
 
 ## Initialize Billing Core
@@ -133,7 +157,7 @@ export async function ensureBillingCustomer(subjectId: string, email?: string, n
 ```
 
 ## Start Subscription API (Next.js App Router)
-Create a route to start a subscription, generate the first invoice, and set entitlements.
+Create a route to start a subscription by `planId`, generate the first invoice, and set entitlements.
 
 ```ts
 // app/api/billing/start/route.ts
@@ -157,8 +181,7 @@ function entitlementsFromPlan(plan: any, seats = 1) {
 export async function POST(req: Request) {
   const body = await req.json()
   const { planId, seats = 1, subjectId, email, name } = body
-
-  const plan = (Plans as any)[planId]
+  const plan = await billing.getPlanById(planId)
   if (!plan) return Response.json({ error: 'invalid_plan' }, { status: 400 })
 
   const customerId = subjectId || await ensureBillingCustomer(subjectId, email, name)
@@ -171,14 +194,13 @@ export async function POST(req: Request) {
     startDate: new Date(),
   }
 
-  const created = await billing.createSubscription(subscription as any, plan)
-
-  const invoice = await billing.generateInvoiceFromStrategy(customerId, plan, {
+  const { subscription: created, invoice: finalized } = await (await import('@mhbdev/bdk')).subscription.start(billing, {
+    customerId,
+    planId,
+    seats,
     periodStart: new Date(),
     periodEnd: new Date(),
-    seats,
   })
-  const finalized = await billing.finalizeInvoice(invoice)
 
   await entSvc.setEntitlements(customerId, entitlementsFromPlan(plan, seats))
 
@@ -187,7 +209,7 @@ export async function POST(req: Request) {
 ```
 
 ## Record Usage API with Gating
-Rate-limit via Redis, enforce quotas, then record usage.
+Rate-limit via Redis, enforce quotas derived from plan metadata via SDK convenience, then record usage.
 
 ```ts
 // app/api/usage/route.ts
@@ -220,17 +242,12 @@ export async function POST(req: Request) {
   const attempted = Number(tokens) || 0
   if (attempted <= 0) return Response.json({ error: 'invalid_quantity' }, { status: 400 })
 
-  const record = {
-    id: `u_${Date.now()}`,
-    customerId,
+  await billing.recordUsageWithPlanPolicy({
     subscriptionId,
     metric: 'ai_tokens',
     quantity: attempted,
     timestamp: new Date(),
-    metadata: { model, operation },
-  }
-
-  await billing.recordUsage(record as any)
+  })
   return Response.json({ ok: true })
 }
 ```

@@ -1,4 +1,5 @@
 import { BillingCore, Plan } from '../src';
+import { subscription as sdkSubscription } from '../src/sdk';
 import { InMemoryStorage } from '../src/storage/inMemory';
 import { StripeAdapter } from '../src/providers/stripe/StripeAdapter';
 
@@ -20,8 +21,14 @@ async function main() {
     metadata: { stripePriceIds: ['price_123'] },
   };
 
-  const sub = await billing.createSubscription({ id: 'sub_1', customerId, planId: plan.id, status: 'active', startDate: new Date() } as any, plan);
-  console.log('Created subscription', sub.externalId);
+  await billing.savePlan(plan);
+  const { subscription } = await sdkSubscription.start(billing, {
+    customerId,
+    planId: plan.id,
+    periodStart: new Date(),
+    periodEnd: new Date(),
+  });
+  console.log('Created subscription', subscription.externalId);
 }
 
 main().catch((e) => console.error(e));

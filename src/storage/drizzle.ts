@@ -1,7 +1,7 @@
 import { eq, and, notInArray } from 'drizzle-orm';
 
 import { BillingStorage } from '../core/interfaces';
-import { Customer, Invoice, Subscription, UsageRecord, Entitlement, InvoiceItem } from '../core/models/types';
+import { Customer, Invoice, Subscription, UsageRecord, Entitlement, InvoiceItem, Plan, Price } from '../core/models/types';
 import {
   customers,
   subscriptions as subsTable,
@@ -10,6 +10,7 @@ import {
   usageRecords as usageTable,
   entitlements as entitlementsTable,
   plans as plansTable,
+  prices as pricesTable,
 } from '../drizzle/schema';
 
 type Db = any;
@@ -259,6 +260,118 @@ export class DrizzleStorage implements BillingStorage {
       pdfUrl: row.pdfUrl ?? undefined,
       metadata: (row.metadata as any) ?? undefined,
     };
+  }
+
+  // Plans
+  async savePlan(plan: Plan): Promise<void> {
+    const planRow = {
+      id: plan.id,
+      key: plan.id, // default key to id for uniqueness
+      productId: plan.productId ?? undefined,
+      name: plan.name,
+      currency: plan.currency,
+      strategy: plan.strategy,
+      basePriceId: plan.basePriceId ?? undefined,
+      seatsIncluded: plan.seatsIncluded ?? undefined,
+      metadata: plan.metadata ?? {},
+    } satisfies typeof plansTable.$inferInsert;
+
+    await this.db.transaction(async (tx: Db) => {
+      await tx
+        .insert(plansTable)
+        .values(planRow)
+        .onConflictDoUpdate({
+          target: plansTable.id,
+          set: {
+            key: planRow.key,
+            productId: planRow.productId,
+            name: planRow.name,
+            currency: planRow.currency,
+            strategy: planRow.strategy,
+            basePriceId: planRow.basePriceId,
+            seatsIncluded: planRow.seatsIncluded,
+            metadata: planRow.metadata,
+          },
+        });
+
+      // Replace prices atomically
+      await tx.delete(pricesTable).where(eq(pricesTable.planId, plan.id));
+      const priceRows = (plan.pricing ?? []).map((p) => ({
+        id: p.id,
+        planId: plan.id,
+        type: p.type,
+        currency: p.currency,
+        unitAmount: p.unitAmount,
+        billingInterval: p.billingInterval ?? undefined,
+        metric: p.metric ?? undefined,
+        tiers: p.tiers ?? undefined,
+        metadata: p.metadata ?? {},
+      })) satisfies (typeof pricesTable.$inferInsert)[];
+      if (priceRows.length) await tx.insert(pricesTable).values(priceRows);
+    });
+  }
+
+  async getPlanById(id: string): Promise<Plan | null> {
+    const [row] = await this.db.select().from(plansTable).where(eq(plansTable.id, id));
+    if (!row) return null;
+    const priceRows = await this.db.select().from(pricesTable).where(eq(pricesTable.planId, id));
+    const pricing: Price[] = (priceRows as Array<typeof pricesTable.$inferSelect>).map((pr) => ({
+      id: pr.id,
+      type: pr.type as Price['type'],
+      currency: pr.currency as Price['currency'],
+      unitAmount: pr.unitAmount ?? 0,
+      billingInterval: pr.billingInterval as any,
+      metric: pr.metric ?? undefined,
+      tiers: (pr.tiers as any) ?? undefined,
+      metadata: (pr.metadata as any) ?? undefined,
+    }));
+    const plan: Plan = {
+      id: row.id,
+      productId: row.productId ?? '',
+      name: row.name,
+      currency: row.currency as Plan['currency'],
+      pricing,
+      strategy: row.strategy as Plan['strategy'],
+      basePriceId: row.basePriceId ?? undefined,
+      seatsIncluded: row.seatsIncluded ?? undefined,
+      metadata: (row.metadata as any) ?? undefined,
+    };
+    return plan;
+  }
+
+  async listPlans(): Promise<Plan[]> {
+    const rows = await this.db.select().from(plansTable);
+    const allPrices = await this.db.select().from(pricesTable);
+    const pricesByPlan = new Map<string, Array<typeof pricesTable.$inferSelect>>();
+    for (const pr of allPrices as Array<typeof pricesTable.$inferSelect>) {
+      const arr = pricesByPlan.get(pr.planId) ?? [];
+      arr.push(pr);
+      pricesByPlan.set(pr.planId, arr);
+    }
+    const plans: Plan[] = (rows as Array<typeof plansTable.$inferSelect>).map((row) => {
+      const pricing: Price[] = (pricesByPlan.get(row.id) ?? []).map((pr) => ({
+        id: pr.id,
+        type: pr.type as Price['type'],
+        currency: pr.currency as Price['currency'],
+        unitAmount: pr.unitAmount ?? 0,
+        billingInterval: pr.billingInterval as any,
+        metric: pr.metric ?? undefined,
+        tiers: (pr.tiers as any) ?? undefined,
+        metadata: (pr.metadata as any) ?? undefined,
+      }));
+      return {
+        id: row.id,
+        productId: row.productId ?? '',
+        name: row.name,
+        currency: row.currency as Plan['currency'],
+        pricing,
+        strategy: row.strategy as Plan['strategy'],
+        basePriceId: row.basePriceId ?? undefined,
+        seatsIncluded: row.seatsIncluded ?? undefined,
+        metadata: (row.metadata as any) ?? undefined,
+      } satisfies Plan;
+    });
+    return plans;
   }
 
   // Entitlements

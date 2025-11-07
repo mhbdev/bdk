@@ -4,14 +4,11 @@ import {
   text,
   boolean,
   integer,
-  bigint,
   jsonb,
   timestamp,
   numeric,
-  uuid,
   uniqueIndex,
   index,
-  primaryKey,
 } from 'drizzle-orm/pg-core';
 
 // Customers
@@ -37,18 +34,42 @@ export const providers = pgTable('providers', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
-// Plans with dynamic pricing strategies (stored as JSON for flexibility)
+// Plans align with core Plan type; prices stored in separate table
 export const plans = pgTable('plans', {
   id: varchar('id', { length: 128 }).primaryKey(),
   key: varchar('key', { length: 128 }).notNull(),
+  productId: varchar('product_id', { length: 128 }),
   name: varchar('name', { length: 256 }).notNull(),
-  status: varchar('status', { length: 32 }).notNull(), // e.g., active, archived
-  pricing: jsonb('pricing').notNull(), // array of pricing components compatible with SDK Plan
+  currency: varchar('currency', { length: 8 }).notNull(),
+  strategy: varchar('strategy', { length: 32 }).notNull(), // flat, usage, hybrid, seat, prepaid
+  basePriceId: varchar('base_price_id', { length: 256 }),
+  seatsIncluded: integer('seats_included'),
+  version: integer('version').default(1).notNull(),
+  active: boolean('active').default(true).notNull(),
+  status: varchar('status', { length: 32 }).default('active').notNull(), // active, archived
+  effectiveStartAt: timestamp('effective_start_at', { withTimezone: true, mode: 'date' }),
+  effectiveEndAt: timestamp('effective_end_at', { withTimezone: true, mode: 'date' }),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
 });
 
 export const plansKeyIdx = uniqueIndex('plans_key_idx').on(plans.key);
+
+// Prices linked to plans
+export const prices = pgTable('prices', {
+  id: varchar('id', { length: 256 }).primaryKey(),
+  planId: varchar('plan_id', { length: 128 }).notNull().references(() => plans.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 16 }).notNull(), // flat, usage
+  currency: varchar('currency', { length: 8 }).notNull(),
+  unitAmount: integer('unit_amount'), // minor units
+  billingInterval: varchar('billing_interval', { length: 16 }), // day, week, month, year
+  metric: varchar('metric', { length: 128 }),
+  tiers: jsonb('tiers'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+});
+
+export const pricesPlanIdx = index('prices_plan_idx').on(prices.planId);
 
 // Subscriptions
 export const subscriptions = pgTable('subscriptions', {

@@ -24,8 +24,8 @@ import { ProrationService, ProrationInput } from './services/invoice/ProrationSe
 import { DefaultLogger } from './services/logging/Logger';
 import { InMemoryFeatureFlagProvider } from './services/feature/FeatureFlagService';
 import { EntitlementChecker } from './services/entitlement/EntitlementChecker';
-import { UsagePolicyService } from './services/usage/UsagePolicyService';
 import { BillingUsageManager } from './services/billing/BillingUsageManager';
+import { UsagePolicyService } from './services/usage/UsagePolicyService';
 
 export class BillingCore {
   private providers: Record<string, BillingProvider> = {};
@@ -36,6 +36,7 @@ export class BillingCore {
   private invoiceService = new InvoiceService();
   private prorationService = new ProrationService();
   private usageManager: BillingUsageManager;
+  private usagePolicy: UsagePolicyService;
 
   constructor(config: BillingConfig) {
     this.storage = config.storage ?? new InMemoryStorage();
@@ -52,8 +53,8 @@ export class BillingCore {
     const logger = new DefaultLogger();
     const flags = new InMemoryFeatureFlagProvider();
     const entChecker = new EntitlementChecker(this.storage);
-    const policySvc = new UsagePolicyService(this.storage);
-    this.usageManager = new BillingUsageManager(this.storage, logger, flags, entChecker, policySvc);
+    this.usagePolicy = new UsagePolicyService(this.storage);
+    this.usageManager = new BillingUsageManager(this.storage, logger, flags, entChecker, this.usagePolicy);
   }
 
   use(name: string, provider: BillingProvider) {
@@ -174,6 +175,38 @@ export class BillingCore {
     await this.storage.recordInvoice(invoice);
     this.emit({ id: invoice.id, type: 'invoice.generated', provider: 'core', createdAt: new Date(), payload: invoice });
     return invoice;
+  }
+
+  async savePlan(plan: Plan): Promise<void> {
+    await this.storage.savePlan(plan);
+    this.emit({ id: plan.id, type: 'plan.updated', provider: 'core', createdAt: new Date(), payload: plan });
+  }
+
+  // Plans
+  async getPlanById(planId: string): Promise<Plan | null> {
+    return this.storage.getPlanById(planId);
+  }
+
+  async listPlans(): Promise<Plan[]> {
+    return this.storage.listPlans();
+  }
+
+  async recordUsageWithPlanPolicy(params: { subscriptionId: string; metric: string; quantity: number; timestamp?: Date }): Promise<void> {
+    const sub = await this.storage.getSubscription(params.subscriptionId);
+    if (!sub) throw new Error(`Subscription not found: ${params.subscriptionId}`);
+    const plan = await this.getPlanById(sub.planId);
+    if (!plan) throw new Error(`Plan not found: ${sub.planId}`);
+    const policy = this.usagePolicy.derivePolicyFromPlan(plan, params.metric);
+    const record: UsageRecord = {
+      id: `u_${Date.now()}`,
+      customerId: sub.customerId,
+      subscriptionId: sub.id,
+      metric: params.metric,
+      quantity: Math.max(0, Number(params.quantity ?? 0)),
+      timestamp: params.timestamp ?? new Date(),
+    };
+    await this.usageManager.recordUsage(record, this.currentProvider, policy ? { policy } : {});
+    this.emit({ id: record.id, type: 'usage.recorded', provider: 'core', createdAt: new Date(), payload: record });
   }
 }
 

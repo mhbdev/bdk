@@ -2,8 +2,10 @@ export { BillingBuilder } from './BillingBuilder';
 export * as plans from './plans';
 export * as invoice from './invoice';
 export * as subscription from './subscription';
+export * as usage from './usage';
 export * as nextjs from '../nextjs';
 export { DrizzleStorage } from '../storage/drizzle';
+export { PlanRegistry } from '../core/registry/PlanRegistry';
 
 import { BillingCore } from '../index';
 import { BillingStorage, BillingProvider } from '../core/interfaces';

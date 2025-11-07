@@ -1,5 +1,5 @@
 import { BillingStorage } from '../core/interfaces';
-import { Customer, Invoice, Subscription, UsageRecord, Entitlement } from '../core/models/types';
+import { Customer, Invoice, Subscription, UsageRecord, Entitlement, Plan } from '../core/models/types';
 
 export class InMemoryStorage implements BillingStorage {
   private customers = new Map<string, Customer>();
@@ -7,6 +7,7 @@ export class InMemoryStorage implements BillingStorage {
   private invoices = new Map<string, Invoice>();
   private usage = new Map<string, UsageRecord[]>(); // key: customerId
   private entitlements = new Map<string, Entitlement[]>();
+  private plans = new Map<string, Plan>();
 
   async saveCustomer(c: Customer): Promise<void> {
     this.customers.set(c.id, c);
@@ -49,5 +50,18 @@ export class InMemoryStorage implements BillingStorage {
 
   async getEntitlements(customerId: string): Promise<Entitlement[]> {
     return this.entitlements.get(customerId) ?? [];
+  }
+
+  // Plans
+  async savePlan(plan: Plan): Promise<void> {
+    this.plans.set(plan.id, plan);
+  }
+
+  async getPlanById(id: string): Promise<Plan | null> {
+    return this.plans.get(id) ?? null;
+  }
+
+  async listPlans(): Promise<Plan[]> {
+    return Array.from(this.plans.values());
   }
 }

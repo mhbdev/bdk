@@ -153,7 +153,8 @@ export interface BillingEvent {
     | 'invoice.generated'
     | 'invoice.paid'
     | 'invoice.payment_failed'
-    | 'usage.recorded';
+    | 'usage.recorded'
+    | 'plan.updated';
   provider: string;
   createdAt: Date;
   payload: any;

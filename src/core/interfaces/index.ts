@@ -42,6 +42,11 @@ export interface BillingStorage {
 
   saveEntitlements(customerId: string, entries: Entitlement[]): Promise<void>;
   getEntitlements(customerId: string): Promise<Entitlement[]>;
+
+  // Plans
+  savePlan(plan: Plan): Promise<void>;
+  getPlanById(id: string): Promise<Plan | null>;
+  listPlans(): Promise<Plan[]>;
 }
 
 export interface BillingConfig {
