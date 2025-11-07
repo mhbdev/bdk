@@ -6,6 +6,39 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./sdk": {
+      "types": "./dist/sdk/index.d.ts",
+      "import": "./dist/sdk/index.js",
+      "require": "./dist/sdk/index.cjs"
+    },
+    "./nextjs": {
+      "types": "./dist/nextjs/index.d.ts",
+      "import": "./dist/nextjs/index.js",
+      "require": "./dist/nextjs/index.cjs"
+    },
+    "./providers/stripe/StripeAdapter": {
+      "types": "./dist/providers/stripe/StripeAdapter.d.ts",
+      "import": "./dist/providers/stripe/StripeAdapter.js",
+      "require": "./dist/providers/stripe/StripeAdapter.cjs"
+    },
+    "./storage/drizzle": {
+      "types": "./dist/storage/drizzle.d.ts",
+      "import": "./dist/storage/drizzle.js",
+      "require": "./dist/storage/drizzle.cjs"
+    },
+    "./storage/inMemory": {
+      "types": "./dist/storage/inMemory.d.ts",
+      "import": "./dist/storage/inMemory.js",
+      "require": "./dist/storage/inMemory.cjs"
+    }
+  },
+  "sideEffects": false,
   "files": [
     "dist",
     "README.md"
@@ -34,6 +67,7 @@
     "eventemitter3": "^5.0.1",
     "pdfkit": "^0.13.0",
     "stripe": "^19.3.0",
+    "ioredis": "^5.3.2",
     "zod": "^3.23.8"
   }
 }
