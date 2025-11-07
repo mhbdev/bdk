@@ -13,6 +13,7 @@ Unified payment gateway abstraction for multiple payment providers.
 - **Product & Price Management**: Create and manage products and prices
 - **Event System**: Subscribe to payment events
 - **Extensible**: Easy to add new payment providers
+- **Usage Tracking**: Record usage, aggregate windows, enforce policies
 
 ## Installation
 
@@ -218,6 +219,24 @@ gateway.on('webhook.subscription.deleted', (data) => {
 });
 ```
 
+// Provider-level events (for providers exposing on/off)
+// Crypto provider emits subscription/payment events you can subscribe to directly
+const crypto = gateway.getProvider('crypto');
+crypto.on?.('subscription.paid', (payload) => {
+  console.log('Crypto subscription paid:', payload);
+});
+crypto.on?.('payment.completed', (payload) => {
+  console.log('Crypto payment completed:', payload);
+});
+
+// Webhook result shape
+// result.handled: boolean
+// result.type: standardized event type (e.g., 'checkout.completed')
+// result.event: provider's event name when applicable (same as type)
+// result.id: provider event id (if available)
+// result.provider: provider name (e.g., 'stripe', 'paypal', 'crypto', 'mock')
+// result.data: provider-specific payload wrapper
+
 ### Customer Management
 
 ```javascript
@@ -354,6 +373,14 @@ const verified = await cryptoProvider.verifyPayment({
   subscriptionId: 'crypto_sub_1234567890',
   transactionId: '0x1234567890abcdef'
 });
+
+// Subscribe to provider-level events
+cryptoProvider.on?.('subscription.paid', (data) => {
+  console.log('Subscription paid:', data);
+});
+cryptoProvider.on?.('payment.completed', (data) => {
+  console.log('Payment completed:', data);
+});
 ```
 
 ### Mock Provider
@@ -388,7 +415,11 @@ function createCustomProvider(options = {}) {
     createSubscription: async (options) => { /* ... */ },
     getSubscription: async (options) => { /* ... */ },
     cancelSubscription: async (options) => { /* ... */ },
-    handleWebhook: async (options) => { /* ... */ }
+    handleWebhook: async (options) => { /* ... */ },
+    // Optional hooks and helpers
+    on: (event, listener) => { /* ... */ },
+    off: (event, listener) => { /* ... */ },
+    verifyPayment: async (opts) => { /* ... */ }
   };
 }
 
@@ -400,6 +431,88 @@ const gateway = createPaymentGateway({
   defaultProvider: 'custom'
 });
 ```
+
+## Usage Tracking & Policies
+
+The gateway includes optional usage metering utilities you can use alongside subscriptions.
+
+```javascript
+// Record usage events
+await gateway.getProvider('crypto').recordUsage?.({
+  customerId: 'cus_123',
+  metricKey: 'api_calls',
+  quantity: 5,
+  timestamp: new Date().toISOString(),
+  // For providers like Stripe, you may need subscriptionItemId
+  // subscriptionItemId: 'si_123'
+  idempotencyKey: 'usage-123'
+});
+
+// Query usage events
+const events = await gateway.getProvider('crypto').getUsage?.({
+  customerId: 'cus_123',
+  metricKey: 'api_calls',
+  start: new Date(Date.now() - 86400000).toISOString(),
+  end: new Date().toISOString()
+});
+
+// Aggregate usage over a window
+const aggregate = await gateway.getProvider('crypto').getUsageAggregate?.({
+  customerId: 'cus_123',
+  metricKey: 'api_calls',
+  window: 'month',
+  aggregation: 'sum'
+});
+
+// Set a usage policy
+const policy = await gateway.getProvider('crypto').setUsagePolicy?.({
+  customerId: 'cus_123',
+  metricKey: 'api_calls',
+  limit: 10000,
+  window: 'month',
+  resetAnchor: '2025-01-01T00:00:00.000Z'
+});
+
+// Check usage limits
+const limit = await gateway.getProvider('crypto').checkUsageLimit?.({
+  customerId: 'cus_123',
+  metricKey: 'api_calls'
+});
+console.log('Allowed?', limit.allowed, 'Remaining:', limit.remaining);
+```
+
+Notes:
+- Crypto provider config supports `usageIdempotencyTtlMs` to control idempotency window.
+- `UsageStorageAdapter` can be provided to customize storage; in-memory is default.
+
+## Types and Shapes
+
+Key types returned across providers:
+- `CheckoutSession`: includes `id`, `url`, `status`, `customerEmail`, `amountTotal`, `amount`, `currency`, `expiresAt`, `provider`, and `providerData`.
+- `Subscription`: includes `id`, `customerId`, optional `customerEmail`, `status`, period fields, `planId`, `startDate`, `endDate`, `items`, plus `provider` and `providerData`.
+- `WebhookResult`: includes `handled`, optional `id`, `type`, `event`, `provider`, and `data`.
+
+## Events Overview
+
+Gateway emits events you can subscribe to with `gateway.on(event, listener)`:
+- `checkout.created`, `checkout.completed`
+- `subscription.created`, `subscription.updated`, `subscription.deleted`
+- `webhook.<event>` (e.g., `webhook.checkout.completed`)
+
+Provider-level events (when available) can be subscribed via `provider.on(event, listener)`.
+- Crypto provider: `subscription.paid`, `payment.completed`
+
+## Testing and Mocking
+
+- Use the mock provider for local tests that simulate common flows.
+- The mock provider supports configurable error rates and delays.
+- Example tests are under `test/` and demonstrate checkout, subscription, webhooks, and usage metering.
+
+## Installation & Build
+
+- Install with `npm install @mhbdev/bdk`.
+- Build artifacts and type definitions are generated via `npm run build`.
+- Providers are published under `dist/providers/` with ESM and DTS outputs.
 
 ## Examples
 
