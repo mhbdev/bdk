@@ -1,6 +1,6 @@
 {
   "name": "@mhbdev/bdk",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Unified payment gateway abstraction for multiple payment providers",
   "type": "module",
   "main": "dist/index.js",
