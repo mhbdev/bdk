@@ -1,73 +1,76 @@
 {
   "name": "@mhbdev/bdk",
   "version": "1.0.7",
-  "description": "Universal billing and payment abstraction framework for Node.js/TypeScript",
+  "description": "Unified payment gateway abstraction for multiple payment providers",
   "type": "module",
-  "main": "dist/index.cjs",
+  "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "types": "./dist/index.d.ts"
     },
-    "./sdk": {
-      "types": "./dist/sdk/index.d.ts",
-      "import": "./dist/sdk/index.js",
-      "require": "./dist/sdk/index.cjs"
+    "./stripe": {
+      "import": "./dist/providers/stripe.js",
+      "types": "./dist/providers/stripe.d.ts"
     },
-    "./nextjs": {
-      "types": "./dist/nextjs/index.d.ts",
-      "import": "./dist/nextjs/index.js",
-      "require": "./dist/nextjs/index.cjs"
+    "./paypal": {
+      "import": "./dist/providers/paypal.js",
+      "types": "./dist/providers/paypal.d.ts"
     },
-    "./providers/stripe/StripeAdapter": {
-      "types": "./dist/providers/stripe/StripeAdapter.d.ts",
-      "import": "./dist/providers/stripe/StripeAdapter.js",
-      "require": "./dist/providers/stripe/StripeAdapter.cjs"
+    "./crypto": {
+      "import": "./dist/providers/crypto.js",
+      "types": "./dist/providers/crypto.d.ts"
     },
-    "./storage/drizzle": {
-      "types": "./dist/storage/drizzle.d.ts",
-      "import": "./dist/storage/drizzle.js",
-      "require": "./dist/storage/drizzle.cjs"
-    },
-    "./storage/inMemory": {
-      "types": "./dist/storage/inMemory.d.ts",
-      "import": "./dist/storage/inMemory.js",
-      "require": "./dist/storage/inMemory.cjs"
+    "./mock": {
+      "import": "./dist/providers/mock.js",
+      "types": "./dist/providers/mock.d.ts"
     }
   },
-  "sideEffects": false,
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "scripts": {
-    "build": "tsup src/index.ts --dts --format cjs,esm --sourcemap",
-    "dev": "tsup src/index.ts --watch --dts --format cjs,esm --sourcemap",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write .",
-    "test": "vitest run --coverage"
+    "build": "tsup --config tsup.config.ts",
+    "dev": "tsup --watch --config tsup.config.ts",
+    "test": "vitest run --config vitest.config.js",
+    "prepublishOnly": "npm run build",
+    "prepare": "husky install"
   },
   "devDependencies": {
+    "@types/eventemitter3": "^2.0.2",
     "@types/node": "^20.11.30",
-    "@vitest/coverage-v8": "^1.6.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "prettier": "^3.2.5",
-    "ts-node": "^10.9.2",
-    "tsup": "^8.0.1",
-    "typescript": "^5.5.4",
-    "vitest": "^1.6.0"
+    "chai": "^4.3.7",
+    "husky": "^9.1.7",
+    "jsdom": "^24.0.0",
+    "mocha": "^10.2.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.6.3",
+    "vitest": "^1.3.1"
   },
+  "keywords": [
+    "billing",
+    "payment",
+    "gateway",
+    "stripe",
+    "paypal",
+    "crypto",
+    "checkout",
+    "subscription",
+    "webhook"
+  ],
+  "author": "mhbdev",
+  "license": "MIT",
   "dependencies": {
-    "drizzle-orm": "^0.44.7",
-    "eventemitter3": "^5.0.1",
-    "ioredis": "^5.8.2",
-    "pdfkit": "^0.13.0",
-    "stripe": "^19.3.0",
-    "zod": "^3.23.8"
-  }
+    "eventemitter3": "^5.0.1"
+  },
+  "optionalDependencies": {
+    "stripe": "^14.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mhbdev/bdk"
+  },
+  "bugs": {
+    "url": "https://github.com/mhbdev/bdk/issues"
+  },
+  "homepage": "https://github.com/mhbdev/bdk#readme"
 }

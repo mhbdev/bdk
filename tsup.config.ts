@@ -1,26 +1,24 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  // Expose multiple top-level entry points so downstream apps can
-  // consume implementations and receive type definitions cleanly.
   entry: {
     index: 'src/index.ts',
-    'sdk/index': 'src/sdk/index.ts',
-    'nextjs/index': 'src/nextjs/index.ts',
-    'providers/stripe/StripeAdapter': 'src/providers/stripe/StripeAdapter.ts',
-    'storage/drizzle': 'src/storage/drizzle.ts',
-    'storage/inMemory': 'src/storage/inMemory.ts',
+    'providers/stripe': 'src/providers/stripe.ts',
+    'providers/paypal': 'src/providers/paypal.ts',
+    'providers/crypto': 'src/providers/crypto.ts',
+    'providers/mock': 'src/providers/mock.ts',
+    types: 'src/types.ts',
   },
-  format: ['cjs', 'esm'],
+  format: ['esm'],
   dts: true,
-  splitting: true,
   sourcemap: true,
+  treeshake: true,
   clean: true,
   minify: false,
-  treeshake: true,
+  target: 'es2020',
   outDir: 'dist',
-  target: 'node16',
-  platform: 'node',
-  // Keep dependencies external for library consumption
-  skipNodeModulesBundle: true,
-})
+  splitting: false,
+  shims: false,
+  // Keep peer/optional deps external to avoid bundling SDKs
+  external: ['stripe', 'eventemitter3'],
+});
