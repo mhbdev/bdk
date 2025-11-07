@@ -25,6 +25,7 @@ import { DefaultLogger } from './services/logging/Logger';
 import { InMemoryFeatureFlagProvider } from './services/feature/FeatureFlagService';
 import { EntitlementChecker } from './services/entitlement/EntitlementChecker';
 import { BillingUsageManager } from './services/billing/BillingUsageManager';
+import { PlanRegistry } from './core/registry/PlanRegistry';
 import { UsagePolicyService } from './services/usage/UsagePolicyService';
 
 export class BillingCore {
@@ -37,6 +38,7 @@ export class BillingCore {
   private prorationService = new ProrationService();
   private usageManager: BillingUsageManager;
   private usagePolicy: UsagePolicyService;
+  private planRegistry?: PlanRegistry;
 
   constructor(config: BillingConfig) {
     this.storage = config.storage ?? new InMemoryStorage();
@@ -184,10 +186,12 @@ export class BillingCore {
 
   // Plans
   async getPlanById(planId: string): Promise<Plan | null> {
+    if (this.planRegistry) return this.planRegistry.getPlan(planId);
     return this.storage.getPlanById(planId);
   }
 
   async listPlans(): Promise<Plan[]> {
+    if (this.planRegistry) return this.planRegistry.listPlans();
     return this.storage.listPlans();
   }
 
@@ -207,6 +211,12 @@ export class BillingCore {
     };
     await this.usageManager.recordUsage(record, this.currentProvider, policy ? { policy } : {});
     this.emit({ id: record.id, type: 'usage.recorded', provider: 'core', createdAt: new Date(), payload: record });
+  }
+
+  // Registry integration
+  setPlanRegistry(registry: PlanRegistry): void {
+    this.planRegistry = registry;
+    registry.attachToEvents(this.on.bind(this));
   }
 }
 
